@@ -1,0 +1,7 @@
+[lang] {
+    display: none;
+}
+
+[lang=en] {
+    display: unset;
+}

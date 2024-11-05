@@ -1,0 +1,307 @@
+<html>
+<title>Bord Game Cards Pdf Generator</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<head>
+    <link rel="stylesheet" type="text/css" href="w3.css">
+    <link rel="stylesheet" type="text/css" href="fonts.css">
+    <link rel="stylesheet" type="text/css" href="lang.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.0/dist/svg.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<style>
+    body,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        font-family: "Raleway", Arial, Helvetica, sans-serif
+    }
+
+    .mySlides {
+        display: none
+    }
+</style>
+
+<body class="w3-content w3-border-left w3-border-right">
+    <div id="app">
+        <div id="settings-div" class="w3-sidebar w3-light-grey w3-top" style="z-index:3;width:320px">
+            <div class="w3-container w3-display-container w3-padding-16">
+                <div id="images-div">
+                    <input id="image-file-input" type="file" multiple="multiple" style="display:none"
+                        v-on:change="onLoadImage($event)" />
+                    <h4>Project</h4>
+                    <div>
+                        <button class="w3-button w3-green" v-on:click="saveProjectToFile">
+                            <span class="material-icons">
+                                save
+                            </span>
+                        </button>
+                        <button class="w3-button w3-green"
+                            v-on:click="loadProjectFromFile">
+                            <span class="material-icons">
+                                folder_open
+                            </span>
+                        </button>
+                        <br>
+                    </div>
+                    <h4>PDF</h4>
+                    <div>
+                        <button class="w3-button w3-block w3-green" v-on:click="generatePdf">
+                            <span lang="en">Generate PDF</span>
+                            <span lang="ru-RU">Сгенерировать PDF</span>
+                        </button>
+                        <br>
+                        <label>
+                            <span lang="en">Auto generation</span>
+                            <span lang="ru-RU">Автогенерация</span>
+                        </label>
+                        <input class="w3-check" v-model.number="project.autoGeneration" type="checkbox" />
+                        <br>
+                    </div>
+                    <h4>
+                        <span lang="en">Cards</span>
+                        <span lang="ru-RU">Карты</span>
+                    </h4>
+                    <div class="w3-margin-left">
+                        <table>
+                            <tr>
+                                <th>
+                                    <span lang="en">Image</span>
+                                    <span lang="ru-RU">Изображения</span>
+                                </th>
+                                <th>
+
+                                    <span lang="en">Repeat Count</span>
+                                    <span lang="ru-RU">Кол-во повторов</span>
+                                </th>
+                                <th></th>
+                            </tr>
+                            <tr v-for="(image, index) in project.images" v-bind:key="image.id">
+                                <td>
+                                    <img :src="image.src"
+                                        style="border: 1px solid #000; max-width:64px; max-height:64px;"
+                                        v-on:load="imageLoaded($event, image)" />
+                                </td>
+                                <td>
+                                    <input class="w3-input w3-border" v-model.number="image.repeatCount"
+                                        type="number" />
+                                </td>
+                                <td>
+                                    <button class="w3-button w3-block w3-green " v-on:click="removeImageSource(image)">
+                                        <span class="material-icons">
+                                            delete_forever
+                                        </span>
+                                    </button>
+                                </td>
+                            </tr>
+                        </table>
+                        <button class="w3-button  w3-green"
+                            onclick="document.getElementById('image-file-input').click()">
+                            <span class="material-icons">
+                                add_box
+                            </span>
+                        </button>
+                        <br>
+                        <br>
+                        <button class="w3-button w3-block w3-green" v-on:click="removeAllImages">
+                            <span lang="en">Remove All Images</span>
+                            <span lang="ru-RU">Убрать Все изображения</span>
+                        </button>
+                        <br>
+                        <label>
+                            <span lang="en">Repeat All Cards</span>
+                            <span lang="ru-RU">Повтор всех карт</span>
+                        </label>
+                        <input class="w3-input w3-border" v-model.number="project.repeatAll" type="number" />
+                        <br>
+                        <div id="card-settings">
+                            <h5>
+                                <span lang="en">Dimensions</span>
+                                <span lang="ru-RU">Размеры</span>
+                            </h5>
+                            <div id="card-dimension-settings" class="w3-margin-left">
+                                <label>
+                                    <span lang="en">Width, mm</span>
+                                    <span lang="ru-RU">Ширина, мм</span>
+                                </label>
+                                <input class="w3-input w3-border" v-model.number="project.card.size.width" type="number"
+                                    step=".01" />
+                                <br>
+                                <label>
+                                    <span lang="en">Height, mm</span>
+                                    <span lang="ru-RU">Высота, мм</span>
+                                </label>
+                                <input class="w3-input w3-border" v-model.number="project.card.size.height"
+                                    type="number" step=".01" />
+                                <br>
+                                <label>
+                                    <span lang="en">Veritcal Gap, mm</span>
+                                    <span lang="ru-RU">Вертикальный промежуток, мм</span>
+                                </label>
+                                <input class="w3-input w3-border" v-model.number="project.card.gap.vertical"
+                                    type="number" step=".01" />
+                                <br>
+                                <label>
+                                    <span lang="en">Horizontal Gap, mm</span>
+                                    <span lang="ru-RU">Горизонтальный промежуток, мм</span>
+                                </label>
+                                <input class="w3-input w3-border" v-model.number="project.card.gap.horizontal"
+                                    type="number" step=".01" />
+                                <br>
+
+                            </div>
+
+                            <h5>
+                                <span lang="en">Stroke</span>
+                                <span lang="ru-RU">Обводка</span>
+                            </h5>
+                            <div id="card-stroke-settings" class="w3-margin-left">
+                                <label>
+                                    <span lang="en">Color</span>
+                                    <span lang="ru-RU">Цвет</span>
+                                </label>
+                                <br>
+                                <input class="w3-border" v-model.color="project.card.stroke.color" type="color" />
+                                <br>
+                                <label>
+                                    <span lang="en">Width, mm</span>
+                                    <span lang="ru-RU">Толщина, мм</span>
+                                </label>
+                                <input class="w3-input w3-border" v-model.number="project.card.stroke.width"
+                                    type="number" step=".01" />
+                                <br>
+                                <label>
+                                    <span lang="en">Rounding, mm</span>
+                                    <span lang="ru-RU">Скругление, мм</span>
+                                </label>
+                                <input class="w3-input w3-border" v-model.number="project.card.rounding" type="number"
+                                    step=".01" />
+                            </div>
+                            <h5>
+                                <span lang="en">Corners</span>
+                                <span lang="ru-RU">Уголки</span>
+                            </h5>
+                            <div id="card-corners-settings" class="w3-margin-left">
+                                <label>
+                                    <span lang="en">Color</span>
+                                    <span lang="ru-RU">Цвет</span>
+                                </label>
+                                <br>
+                                <input class="w3-border" v-model.color="project.card.corner.stroke.color"
+                                    type="color" />
+                                <br>
+                                <label>
+                                    <span lang="en">Stroke Width, mm</span>
+                                    <span lang="ru-RU">Толщина линии, мм</span>
+                                </label>
+                                <input class="w3-input w3-border" v-model.number="project.card.corner.stroke.width"
+                                    type="number" step=".01" />
+                                <br>
+                                <label>
+                                    <span lang="en">Length, mm</span>
+                                    <span lang="ru-RU">Длина, мм</span>
+                                </label>
+                                <input class="w3-input w3-border" v-model.number="project.card.corner.length"
+                                    type="number" step=".01" />
+                                <br>
+                            </div>
+
+                            <h4>
+                                <span lang="en">Margins</span>
+                                <span lang="ru-RU">Поля</span>
+                            </h4>
+                            <div id="card-margins-settings" class="w3-margin-left">
+                                <label>
+                                    <span lang="en">Top, mm</span>
+                                    <span lang="ru-RU">Верх, мм</span>
+                                </label>
+                                <input class="w3-input w3-border" v-model.number="project.card.corner.margins.top"
+                                    type="number" step=".01" />
+                                <br>
+                                <label>
+                                    <span lang="en">Bottom, mm</span>
+                                    <span lang="ru-RU">Низ, мм</span>
+                                </label>
+                                <input class="w3-input w3-border" v-model.number="project.card.corner.margins.bottom"
+                                    type="number" step=".01" />
+                                <br>
+                                <label>
+                                    <span lang="en">Left, mm</span>
+                                    <span lang="ru-RU">Лево, мм</span>
+                                </label>
+                                <input class="w3-input w3-border" v-model.number="project.card.corner.margins.left"
+                                    type="number" step=".01" />
+                                <br>
+                                <label>
+                                    <span lang="en">Right, mm</span>
+                                    <span lang="ru-RU">Право, мм</span>
+                                </label>
+                                <input class="w3-input w3-border" v-model.number="project.card.corner.margins.right"
+                                    type="number" step=".01" />
+                                <br>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="other-settings-div">
+                    <h4>
+                        <span lang="en">Page</span>
+                        <span lang="ru-RU">Страница</span>
+                    </h4>
+                    <div id="page-settngs" class="w3-margin-left">
+                        <h4>
+                            <span lang="en">Margins</span>
+                            <span lang="ru-RU">Поля</span>
+                        </h4>
+                        <label>
+                            <span lang="en">Top, mm</span>
+                            <span lang="ru-RU">Верх, мм</span>
+                        </label>
+                        <input class="w3-input w3-border" v-model.number="project.page.margins.top" type="number"
+                            step=".01" />
+                        <br>
+                        <label>
+                            <span lang="en">Bottom, mm</span>
+                            <span lang="ru-RU">Низ, мм</span>
+                        </label>
+                        <input class="w3-input w3-border" v-model.number="project.page.margins.bottom" type="number"
+                            step=".01" />
+                        <br>
+                        <label>
+                            <span lang="en">Left, mm</span>
+                            <span lang="ru-RU">Лево, мм</span>
+                        </label>
+                        <input class="w3-input w3-border" v-model.number="project.page.margins.left" type="number"
+                            step=".01" />
+                        <br>
+                        <label>
+                            <span lang="en">Right, mm</span>
+                            <span lang="ru-RU">Право, мм</span>
+                        </label>
+                        <input class="w3-input w3-border" v-model.number="project.page.margins.right" type="number"
+                            step=".01" />
+                        <br>
+                        <label>
+                            <span lang="en">Draw Margins</span>
+                            <span lang="ru-RU">Рисовать контур</span>
+                        </label>
+                        <input class="w3-check" v-model.number="project.page.margins.draw" type="checkbox" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="pdf-container" class="w3-main w3-white" style="margin-left:260px">
+            <iframe src="" type="application/pdf" width="100%" height="100%" style="overflow: auto;">
+            </iframe>
+        </div>
+
+    </div>
+
+    <script src="index.js"></script>
+</body>
+
+</html>
