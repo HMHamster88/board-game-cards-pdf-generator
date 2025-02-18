@@ -3,6 +3,11 @@ const dbVersion = 1;
 const projectsStorageName = 'projects';
 const defaultProjectId = 'default';
 
+const a4PageSize = {
+    width: 210,
+    height: 297
+};
+
 class ImageSource {
     constructor(src) {
         this.id = "id" + Math.random().toString(16).slice(2)
@@ -11,6 +16,38 @@ class ImageSource {
         this.width = 64;
         this.height = 64;
     }
+}
+
+/**
+ * Simple object check.
+ * @param item
+ * @returns {boolean}
+ */
+function isObject(item) {
+    return (item && typeof item === 'object' && !Array.isArray(item));
+}
+
+/**
+ * Deep merge two objects.
+ * @param target
+ * @param ...sources
+ */
+function mergeDeep(target, ...sources) {
+    if (!sources.length) return target;
+    const source = sources.shift();
+
+    if (isObject(target) && isObject(source)) {
+        for (const key in source) {
+            if (isObject(source[key])) {
+                if (!target[key]) Object.assign(target, { [key]: {} });
+                mergeDeep(target[key], source[key]);
+            } else {
+                Object.assign(target, { [key]: source[key] });
+            }
+        }
+    }
+
+    return mergeDeep(target, ...sources);
 }
 
 function localize(language) {
@@ -56,58 +93,80 @@ function download(data, filename, type) {
     }
 }
 
+const defaultProject = {
+    id: defaultProjectId,
+    autoGeneration: false,
+    images: [
+    ],
+    page: {
+        margins: {
+            top: 3,
+            bottom: 3,
+            right: 3,
+            left: 3,
+            draw: false,
+        }
+    },
+    card: {
+        slice: {
+            horizontalCount: 2,
+            verticalCount: 2,
+            rotateAngle: 0
+        },
+        size: {
+            width: 63.15,
+            height: 40.35
+        },
+        gap: {
+            vertical: 0,
+            horizontal: 0
+        },
+        rounding: 3,
+        stroke: {
+            color: '#dddddd',
+            width: 0.2
+        },
+        corner: {
+            length: 2,
+            stroke: {
+                color: '#000000',
+                width: 0.2
+            },
+            margins: {
+                top: 0,
+                bottom: 0,
+                right: 0,
+                left: 0
+            }
+        }
+    },
+    repeatAll: 1,
+    gcode: {
+        startCode: 'G0 X0 Y0',
+        endCode: '',
+        cardsCount: 0,
+        dragKnifeOffset: 3,
+        feedRate: 2000,
+        contourStartCode: "M3 S1000\r\nG4 P0.25",
+        contourEndCode: "M3 S0\r\nG4 P0.1",
+        passCount: 1,
+        xOffset: 0,
+        yOffset: 0,
+        xScale: 1,
+        yScale: 1
+    }
+};
+
 var app = new Vue({
     el: '#app',
     data: {
         db: null,
-        project: {
-            id: defaultProjectId,
-            autoGeneration: false,
-            images: [
-            ],
-            page: {
-                margins: {
-                    top: 3,
-                    bottom: 3,
-                    right: 3,
-                    left: 3,
-                    draw: false,
-                }
-            },
-            card: {
-                size: {
-                    width: 63.15,
-                    height: 40.35
-                },
-                gap: {
-                    vertical: 0,
-                    horizontal: 0
-                },
-                rounding: 3,
-                stroke: {
-                    color: '#dddddd',
-                    width: 0.2
-                },
-                corner: {
-                    length: 2,
-                    stroke: {
-                        color: '#000000',
-                        width: 0.2
-                    },
-                    margins: {
-                        top: 0,
-                        bottom: 0,
-                        right: 0,
-                        left: 0
-                    }
-                }
-            },
-            repeatAll: 1
-        }
+        project: mergeDeep({}, defaultProject)
     },
     mounted() {
         this.$nextTick(function () {
             this.openDb();
+            console.log(this.project);
         })
     },
     methods: {
@@ -137,13 +196,80 @@ var app = new Vue({
         onLoadImage: function (event) {
             event.target.files.forEach(file => getBase64(file, data => this.project.images.push(new ImageSource(data))));
         },
+        async addAndSliceImage() {
+            const pickerOpts = {
+                types: [
+                    {
+                        description: 'İmage Files',
+                        accept: {
+                            'image/*': ['.png', '.gif', '.jpeg', '.jpg'],
+                        },
+                    },
+                ],
+                excludeAcceptAllOption: true,
+                multiple: true,
+            };
+
+            const fileHandles = await window.showOpenFilePicker(pickerOpts);
+
+            for (var fileHandle of fileHandles) {
+                const fileData = await fileHandle.getFile();
+                var reader = new FileReader();
+                reader.readAsDataURL(fileData);
+                reader.onload = (event) => {
+                    var slice = this.project.card.slice;
+                    this.sliceImage(event.target.result, slice.horizontalCount, slice.verticalCount, slice.rotateAngle, images => {
+                        images.forEach(image => {
+                            this.project.images.push(new ImageSource(image));
+                        })
+                    })
+                };
+                reader.onerror = error => {
+                    console.log('Error: ', error);
+                };
+            }
+        },
+        sliceImage(imageDataUrl, horizontalCount, verticalCount, rotateAngle, resultCallback) {
+            var image = new Image();
+            angleInRadians = rotateAngle * Math.PI / 180;
+            changeDimensions = rotateAngle == '90' || rotateAngle == '270';
+            image.onload = () => {
+                var imagePieces = [];
+                widthOfOnePiece = image.width / horizontalCount;
+                heightOfOnePiece = image.height / verticalCount;
+                for(var y = 0; y < verticalCount; ++y) {
+                    for(var x = 0; x < horizontalCount; ++x) {
+                        var canvas = document.createElement('canvas');
+                        
+                        canvas.width = changeDimensions ? heightOfOnePiece :  widthOfOnePiece;
+                        canvas.height = changeDimensions ? widthOfOnePiece : heightOfOnePiece;
+                        var context = canvas.getContext('2d');
+
+                        canvasCenterX = canvas.width / 2;
+                        canvasCenterY = canvas.height / 2;
+                        context.translate(canvasCenterX, canvasCenterY);
+                        context.rotate(angleInRadians);
+
+                        context.drawImage(image, x * widthOfOnePiece, y * heightOfOnePiece, widthOfOnePiece, heightOfOnePiece, 
+                            -widthOfOnePiece / 2, -heightOfOnePiece / 2, widthOfOnePiece, heightOfOnePiece);
+                        
+                        context.rotate(-angleInRadians);
+                        context.translate(-canvasCenterX, -canvasCenterY);
+
+                        imagePieces.push(canvas.toDataURL());
+                    }
+                }
+                resultCallback(imagePieces);
+            };
+            image.src = imageDataUrl;
+        },
         onLoadProject(event) {
             var file = event.target.files[0];
             var reader = new FileReader();
             reader.readAsText(file);
             reader.onload = () => {
                 var openedProject = JSON.parse(reader.result);
-                this.project = openedProject;
+                mergeDeep(this.project, openedProject)
             };
             reader.onerror = error => {
                 console.log('Error: ', error);
@@ -163,6 +289,9 @@ var app = new Vue({
         },
         removeImageSource(image) {
             this.project.images = this.project.images.filter(item => item !== image);
+        },
+        newProject() {
+            this.project = mergeDeep({}, defaultProject);
         },
         saveProject: function () {
             if (this.project) {
@@ -209,7 +338,7 @@ var app = new Vue({
             reader.readAsText(fileData);
             reader.onload = () => {
                 var openedProject = JSON.parse(reader.result);
-                this.project = openedProject;
+                mergeDeep(this.project, openedProject);
             };
             reader.onerror = error => {
                 console.log('Error: ', error);
@@ -222,7 +351,7 @@ var app = new Vue({
             request.onsuccess = () => {
                 let savedProject = request.result;
                 if (savedProject) {
-                    this.project = savedProject;
+                    mergeDeep(this.project, savedProject);
                 }
             }
             request.onerror = () => {
@@ -234,14 +363,10 @@ var app = new Vue({
             image.height = event.target.naturalHeight;
         },
         getEfectiveSize() {
-            var pageSize = {
-                width: 210,
-                height: 297
-            }
             var margins = this.project.page.margins;
             return {
-                width: pageSize.width - margins.left - margins.right,
-                height: pageSize.height - margins.top - margins.bottom
+                width: a4PageSize.width - margins.left - margins.right,
+                height: a4PageSize.height - margins.top - margins.bottom
             }
         },
         getTableCardsCount() {
@@ -252,6 +377,65 @@ var app = new Vue({
                 horizontal: Math.floor(effectiveSize.width / (cardSize.width + cardGap.horizontal)),
                 vertical: Math.floor(effectiveSize.height / (cardSize.height + cardGap.vertical))
             }
+        },
+        async generateGCode() {
+            var gcodes = [];
+
+            const opts = {
+                suggestedName: "cards.nc",
+                types: [
+                    {
+                        description: "NC",
+                        accept: { "text/plain": [".nc"] }
+                    },
+                ],
+            };
+            var fileHandle = await window.showSaveFilePicker(opts);
+            const writable = await fileHandle.createWritable();
+
+            var margins = this.project.page.margins;
+            var effectiveSize = this.getEfectiveSize();
+            var cardGap = this.project.card.gap;
+            var cardSize = this.project.card.size;
+
+            var cardsCount = this.getTableCardsCount();
+
+            var tableWidth = cardsCount.horizontal * cardSize.width + (cardsCount.horizontal - 1) * cardGap.horizontal;
+            var tableHeight = cardsCount.vertical * cardSize.height + (cardsCount.vertical - 1) * cardGap.vertical;
+
+            var tableX = margins.left + (effectiveSize.width - tableWidth) / 2;
+            var tableY = margins.top + (effectiveSize.height - tableHeight) / 2;
+
+            var gcodeSettings = this.project.gcode;
+            var cardIndex = 0;
+
+            gcodes.push(gcodeSettings.startCode);
+            (() => {
+                for (var cardRow = 0; cardRow < cardsCount.vertical; cardRow++) {
+                    for (var cardColumn = 0; cardColumn < cardsCount.horizontal; cardColumn++) {
+                        var cutCardColumn = (cardsCount.horizontal - cardColumn - 1);//cardRow % 2 == 1 ? cardColumn : (cardsCount.horizontal - cardColumn - 1);
+                        var cardX = a4PageSize.width - (tableX + cutCardColumn * (cardSize.width + cardGap.horizontal)) - cardSize.width;
+                        var cardY = tableY + cardRow * (cardSize.height + cardGap.vertical);
+                        addRectGCode(
+                            cardX * gcodeSettings.xScale + gcodeSettings.xOffset,
+                            cardY * gcodeSettings.yScale + gcodeSettings.yOffset,
+                            cardSize.width * gcodeSettings.xScale,
+                            cardSize.height * gcodeSettings.yScale,
+                            this.project.card.rounding, gcodeSettings.dragKnifeOffset,
+                            gcodeSettings.feedRate, gcodeSettings.contourStartCode,
+                            gcodeSettings.contourEndCode,
+                            gcodeSettings.passCount,
+                            gcodes);
+                        cardIndex++;
+                        if (gcodeSettings.cardsCount != 0 && cardIndex >= gcodeSettings.cardsCount) {
+                            return;
+                        }
+                    }
+                }
+            })();
+            gcodes.push(gcodeSettings.endCode);
+            await writable.write(gcodes.join("\r\n"));
+            await writable.close();
         },
         generatePdf() {
             console.log('start generation');

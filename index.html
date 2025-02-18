@@ -1,6 +1,7 @@
 <html>
 <title>Bord Game Cards Pdf Generator</title>
 <link rel="icon" type="image/x-icon" href="favicon.ico">
+
 <head>
     <link rel="stylesheet" type="text/css" href="w3.css">
     <link rel="stylesheet" type="text/css" href="fonts.css">
@@ -39,10 +40,14 @@
                                 save
                             </span>
                         </button>
-                        <button class="w3-button w3-green"
-                            v-on:click="loadProjectFromFile">
+                        <button class="w3-button w3-green" v-on:click="loadProjectFromFile">
                             <span class="material-icons">
                                 folder_open
+                            </span>
+                        </button>
+                        <button class="w3-button w3-green" v-on:click="newProject">
+                            <span class="material-icons">
+                                fiber_new
                             </span>
                         </button>
                         <br>
@@ -66,6 +71,59 @@
                         <span lang="ru-RU">Карты</span>
                     </h4>
                     <div class="w3-margin-left">
+                        <button class="w3-button  w3-green"
+                            onclick="document.getElementById('image-file-input').click()">
+                            <span class="material-icons">
+                                add_box
+                            </span>
+                        </button>
+                        <br>
+                        <br>
+                        <button class="w3-button  w3-green"
+                            v-on:click="addAndSliceImage">
+                            <span lang="en">Add and slice</span>
+                            <span lang="ru-RU">Добавить и разрезать</span>
+                        </button>
+                        <br>
+                        <label>
+                            <span lang="en">Horizontal count</span>
+                            <span lang="ru-RU">Количество по горизонтали</span>
+                        </label>
+                        <input class="w3-input w3-border" v-model.number="project.card.slice.horizontalCount"
+                            type="number" />
+                        <br>
+                        <label>
+                            <span lang="en">Vertiacl count</span>
+                            <span lang="ru-RU">Количество по вертикали</span>
+                        </label>
+                        <input class="w3-input w3-border" v-model.number="project.card.slice.verticalCount"
+                            type="number" />
+                        <br>
+                        <label>
+                            <span lang="en">Rotate</span>
+                            <span lang="ru-RU">Поворот</span>
+                        </label>
+                        <select v-model="project.card.slice.rotateAngle">
+                            <option disabled value="">Выберите один из вариантов</option>
+                            <option>0</option>
+                            <option>90</option>
+                            <option>180</option>
+                            <option>270</option>
+                          </select>
+                        <br>
+
+                        <br>
+                        <button class="w3-button w3-block w3-green" v-on:click="removeAllImages">
+                            <span lang="en">Remove All Images</span>
+                            <span lang="ru-RU">Убрать Все изображения</span>
+                        </button>
+                        <br>
+                        <label>
+                            <span lang="en">Repeat All Cards</span>
+                            <span lang="ru-RU">Повтор всех карт</span>
+                        </label>
+                        <input class="w3-input w3-border" v-model.number="project.repeatAll" type="number" />
+                        <br>
                         <table>
                             <tr>
                                 <th>
@@ -98,24 +156,6 @@
                                 </td>
                             </tr>
                         </table>
-                        <button class="w3-button  w3-green"
-                            onclick="document.getElementById('image-file-input').click()">
-                            <span class="material-icons">
-                                add_box
-                            </span>
-                        </button>
-                        <br>
-                        <br>
-                        <button class="w3-button w3-block w3-green" v-on:click="removeAllImages">
-                            <span lang="en">Remove All Images</span>
-                            <span lang="ru-RU">Убрать Все изображения</span>
-                        </button>
-                        <br>
-                        <label>
-                            <span lang="en">Repeat All Cards</span>
-                            <span lang="ru-RU">Повтор всех карт</span>
-                        </label>
-                        <input class="w3-input w3-border" v-model.number="project.repeatAll" type="number" />
                         <br>
                         <div id="card-settings">
                             <h5>
@@ -290,6 +330,106 @@
                         </label>
                         <input class="w3-check" v-model.number="project.page.margins.draw" type="checkbox" />
                     </div>
+
+                    <h4>
+                        <span lang="en">GCode</span>
+                        <span lang="ru-RU">GCode</span>
+                    </h4>
+                    <div id="gcode-settngs" class="w3-margin-left">
+                        <button class="w3-button w3-block w3-green" v-on:click="generateGCode">
+                            <span lang="en">Generate GCode</span>
+                            <span lang="ru-RU">Сгенерировать GCode</span>
+                        </button>
+                        <br>
+                        <label>
+                            <span lang="en">Cards Count</span>
+                            <span lang="ru-RU">Количество карт</span>
+                        </label>
+                        <input class="w3-input w3-border" v-model="project.gcode.cardsCount" type="number" step="1" />
+                        <br>
+
+                        <label>
+                            <span lang="en">Start Code</span>
+                            <span lang="ru-RU">Старотовый код</span>
+                        </label>
+                        <textarea v-model="project.gcode.startCode">
+                        </textarea>
+                        <br>
+
+                        <label>
+                            <span lang="en">End Code</span>
+                            <span lang="ru-RU">Конечный код</span>
+                        </label>
+                        <textarea v-model="project.gcode.endCode">
+                        </textarea>
+                        <br>
+
+                        <label>
+                            <span lang="en">Drag Knife Offset, mm</span>
+                            <span lang="ru-RU">Сдвиг лезвия флюгерного ножа, мм</span>
+                        </label>
+                        <input class="w3-input w3-border" v-model.number="project.gcode.dragKnifeOffset" type="number"
+                            step=".01" />
+                        <br>
+                        <label>
+                            <span lang="en">Feed Rate, mm/min</span>
+                            <span lang="ru-RU">Скорость подачи, мм/мин</span>
+                        </label>
+                        <input class="w3-input w3-border" v-model.number="project.gcode.feedRate" type="number"
+                            step="1" />
+                        <br>
+                        <label>
+                            <span lang="en">Contour Start Code</span>
+                            <span lang="ru-RU">Старотовый код контура</span>
+                        </label>
+                        <textarea v-model="project.gcode.contourStartCode">
+                        </textarea>
+                        <br>
+                        <label>
+                            <span lang="en">Contour End Code</span>
+                            <span lang="ru-RU">Конечный код контура</span>
+                        </label>
+                        <textarea v-model="project.gcode.contourEndCode">
+                        </textarea>
+                        <br>
+                        <label>
+                            <span lang="en">Pass Count</span>
+                            <span lang="ru-RU">Количество проходов</span>
+                        </label>
+                        <input class="w3-input w3-border" v-model="project.gcode.passCount" type="number" step="1" />
+                        <br>
+
+                        <label>
+                            <span lang="en">X Offset, mm</span>
+                            <span lang="ru-RU">Сдвиг X, мм</span>
+                        </label>
+                        <input class="w3-input w3-border" v-model.number="project.gcode.xOffset" type="number"
+                            step=".0000001" />
+                        <br>
+                        <label>
+                            <span lang="en">Y Offset, mm</span>
+                            <span lang="ru-RU">Сдвиг Y, мм</span>
+                        </label>
+                        <input class="w3-input w3-border" v-model.number="project.gcode.yOffset" type="number"
+                            step=".0000001" />
+                        <br>
+
+                        <label>
+                            <span lang="en">X Scale, mm</span>
+                            <span lang="ru-RU">Масштаб X, мм</span>
+                        </label>
+                        <input class="w3-input w3-border" v-model.number="project.gcode.xScale" type="number"
+                            step=".0000001" />
+                        <br>
+
+                        <label>
+                            <span lang="en">Y Scale, mm</span>
+                            <span lang="ru-RU">Масштаб Y, мм</span>
+                        </label>
+                        <input class="w3-input w3-border" v-model.number="project.gcode.yScale" type="number"
+                            step=".0000001" />
+                        <br>
+                    </div>
                 </div>
             </div>
         </div>
@@ -301,6 +441,7 @@
 
     </div>
 
+    <script src="gcode.js"></script>
     <script src="index.js"></script>
 </body>
 
