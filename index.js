@@ -109,13 +109,13 @@ const defaultProject = {
     },
     card: {
         slice: {
-            horizontalCount: 2,
+            horizontalCount: 5,
             verticalCount: 2,
             rotateAngle: 0
         },
         size: {
-            width: 63.15,
-            height: 40.35
+            width: 88.9,
+            height: 57.15
         },
         gap: {
             vertical: 0,
@@ -145,10 +145,10 @@ const defaultProject = {
         startCode: 'G0 X0 Y0',
         endCode: '',
         cardsCount: 0,
-        dragKnifeOffset: 3,
+        dragKnifeOffset: 0.25,
         feedRate: 2000,
-        contourStartCode: "M3 S1000\r\nG4 P0.25",
-        contourEndCode: "M3 S0\r\nG4 P0.1",
+        contourStartCode: "G1 F1000\r\n M3 S1000\r\nG4 P0.25",
+        contourEndCode: "M3 S0\r\nG4 P0.25",
         passCount: 1,
         xOffset: 0,
         yOffset: 0,
@@ -409,18 +409,20 @@ var app = new Vue({
             var gcodeSettings = this.project.gcode;
             var cardIndex = 0;
 
+            var cornerMargins = this.project.card.corner.margins;
+
             gcodes.push(gcodeSettings.startCode);
             (() => {
                 for (var cardRow = 0; cardRow < cardsCount.vertical; cardRow++) {
                     for (var cardColumn = 0; cardColumn < cardsCount.horizontal; cardColumn++) {
                         var cutCardColumn = (cardsCount.horizontal - cardColumn - 1);//cardRow % 2 == 1 ? cardColumn : (cardsCount.horizontal - cardColumn - 1);
-                        var cardX = a4PageSize.width - (tableX + cutCardColumn * (cardSize.width + cardGap.horizontal)) - cardSize.width;
-                        var cardY = tableY + cardRow * (cardSize.height + cardGap.vertical);
+                        var cardX = a4PageSize.width - (tableX + cutCardColumn * (cardSize.width + cardGap.horizontal) - cornerMargins.right) - cardSize.width;
+                        var cardY = tableY + cardRow * (cardSize.height + cardGap.vertical) + cornerMargins.top;
                         addRectGCode(
                             cardX * gcodeSettings.xScale + gcodeSettings.xOffset,
                             cardY * gcodeSettings.yScale + gcodeSettings.yOffset,
-                            cardSize.width * gcodeSettings.xScale,
-                            cardSize.height * gcodeSettings.yScale,
+                            (cardSize.width - (cornerMargins.left + cornerMargins.right)) * gcodeSettings.xScale,
+                            (cardSize.height - (cornerMargins.top + cornerMargins.bottom)) * gcodeSettings.yScale,
                             this.project.card.rounding, gcodeSettings.dragKnifeOffset,
                             gcodeSettings.feedRate, gcodeSettings.contourStartCode,
                             gcodeSettings.contourEndCode,
@@ -494,8 +496,16 @@ var app = new Vue({
                         doc.addImage(tableImage.src, null, cardX, cardY, cardSize.width, cardSize.height, null, null, null);
                         doc.setDrawColor(this.project.card.stroke.color);
                         doc.setLineWidth(this.project.card.stroke.width);
+                        var cornerMargins = this.project.card.corner.margins;
+
                         if (this.project.card.stroke.width != 0) {
-                            doc.roundedRect(cardX, cardY, cardSize.width, cardSize.height, this.project.card.rounding, this.project.card.rounding);
+                            doc.roundedRect(cardX + cornerMargins.left, 
+                                cardY + cornerMargins.top, 
+                                cardSize.width - (cornerMargins.left + cornerMargins.right), 
+                                cardSize.height - (cornerMargins.top + cornerMargins.bottom), 
+                                this.project.card.rounding, 
+                                this.project.card.rounding
+                            );
                         }
 
 
@@ -503,7 +513,6 @@ var app = new Vue({
                         var cardBottom = cardY + cardSize.height;
                         doc.setDrawColor(this.project.card.corner.stroke.color);
                         doc.setLineWidth(this.project.card.corner.stroke.width);
-                        var cornerMargins = this.project.card.corner.margins;
                         if (this.project.card.corner.stroke.width != 0) {
                             doc.lines([
                                 [-cornerLength, 0],
