@@ -8,6 +8,13 @@ const a4PageSize = {
     height: 297
 };
 
+const imageFileType = {
+    description: 'İmage Files',
+    accept: {
+        'image/*': ['.png', '.gif', '.jpeg', '.jpg'],
+    },
+};
+
 class ImageSource {
     constructor(src) {
         this.id = "id" + Math.random().toString(16).slice(2)
@@ -15,6 +22,17 @@ class ImageSource {
         this.repeatCount = 1;
         this.width = 64;
         this.height = 64;
+    }
+}
+
+class Marker {
+    constructor(src) {
+        this.id = "id" + Math.random().toString(16).slice(2)
+        this.src = src;
+        this.x = 0;
+        this.y = 0;
+        this.width = 6;
+        this.height = 6;
     }
 }
 
@@ -105,7 +123,8 @@ const defaultProject = {
             right: 3,
             left: 3,
             draw: false,
-        }
+        },
+        markers: []
     },
     card: {
         slice: {
@@ -196,15 +215,33 @@ var app = new Vue({
         onLoadImage: function (event) {
             event.target.files.forEach(file => getBase64(file, data => this.project.images.push(new ImageSource(data))));
         },
+        async addMarker() {
+            const pickerOpts = {
+                types: [
+                    imageFileType
+                ],
+                excludeAcceptAllOption: true,
+                multiple: true,
+            };
+
+            const fileHandles = await window.showOpenFilePicker(pickerOpts);
+
+            for (var fileHandle of fileHandles) {
+                const fileData = await fileHandle.getFile();
+                var reader = new FileReader();
+                reader.readAsDataURL(fileData);
+                reader.onload = (event) => {
+                    this.project.page.markers.push(new Marker(event.target.result));
+                };
+                reader.onerror = error => {
+                    console.log('Error: ', error);
+                };
+            }
+        },
         async addAndSliceImage() {
             const pickerOpts = {
                 types: [
-                    {
-                        description: 'İmage Files',
-                        accept: {
-                            'image/*': ['.png', '.gif', '.jpeg', '.jpg'],
-                        },
-                    },
+                    imageFileType
                 ],
                 excludeAcceptAllOption: true,
                 multiple: true,
@@ -289,6 +326,9 @@ var app = new Vue({
         },
         removeImageSource(image) {
             this.project.images = this.project.images.filter(item => item !== image);
+        },
+        removeMarker(marker) {
+            this.project.page.markers = this.project.page.markers.filter(item => item !== marker);
         },
         newProject() {
             this.project = mergeDeep({}, defaultProject);
@@ -390,6 +430,16 @@ var app = new Vue({
                     },
                 ],
             };
+
+            for (var marker of this.project.page.markers) {
+                var gcodeMarker = {
+                    x: a4PageSize.width - marker.x,
+                    y: marker.y,
+                    image: marker.src
+                };
+                gcodes.push("# marker: " + JSON.stringify(gcodeMarker));
+            }
+
             var fileHandle = await window.showSaveFilePicker(opts);
             const writable = await fileHandle.createWritable();
 
@@ -473,6 +523,10 @@ var app = new Vue({
                 doc.setLineDashPattern([5, 1]);
                 doc.rect(margins.left, margins.top, effectiveSize.width, effectiveSize.height);
                 doc.setLineDashPattern();
+            }
+
+            for (var marker of this.project.page.markers) {
+                doc.addImage(marker.src, null, marker.x - marker.width / 2, marker.y - marker.height / 2, marker.width, marker.height, null, null, null);
             }
 
             var cornerLength = this.project.card.corner.length;

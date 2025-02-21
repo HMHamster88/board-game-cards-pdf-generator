@@ -28,7 +28,7 @@
 
 <body class="w3-content w3-border-left w3-border-right">
     <div id="app">
-        <div id="settings-div" class="w3-sidebar w3-light-grey w3-top" style="z-index:3;width:320px">
+        <div id="settings-div" class="w3-sidebar w3-light-grey w3-top" style="z-index:3;width:420px">
             <div class="w3-container w3-display-container w3-padding-16">
                 <div id="images-div">
                     <input id="image-file-input" type="file" multiple="multiple" style="display:none"
@@ -79,8 +79,7 @@
                         </button>
                         <br>
                         <br>
-                        <button class="w3-button  w3-green"
-                            v-on:click="addAndSliceImage">
+                        <button class="w3-button  w3-green" v-on:click="addAndSliceImage">
                             <span lang="en">Add and slice</span>
                             <span lang="ru-RU">Добавить и разрезать</span>
                         </button>
@@ -109,7 +108,7 @@
                             <option>90</option>
                             <option>180</option>
                             <option>270</option>
-                          </select>
+                        </select>
                         <br>
 
                         <br>
@@ -329,6 +328,69 @@
                             <span lang="ru-RU">Рисовать контур</span>
                         </label>
                         <input class="w3-check" v-model.number="project.page.margins.draw" type="checkbox" />
+
+                        <div id="page-settngs" class="w3-margin-left">
+                            <h4>
+                                <span lang="en">Markers</span>
+                                <span lang="ru-RU">Маркеры</span>
+                            </h4>
+                            <button class="w3-button  w3-green" v-on:click="addMarker">
+                                <span lang="en">Add marker</span>
+                                <span lang="ru-RU">Добавить маркер</span>
+                            </button>
+                            <br>
+
+                            <table id="markers-table">
+                                <tr>
+                                    <th>
+                                    </th>
+                                    <th>
+                                        <span lang="en">X</span>
+                                        <span lang="ru-RU">X</span>
+                                    </th>
+                                    <th>
+                                        <span lang="en">Y</span>
+                                        <span lang="ru-RU">Y</span>
+                                    </th>
+                                    <th>
+                                        <span lang="en">Width</span>
+                                        <span lang="ru-RU">Ширина</span>
+                                    </th>
+                                    <th>
+                                        <span lang="en">Height</span>
+                                        <span lang="ru-RU">Высота</span>
+                                    </th>
+                                    <th></th>
+                                </tr>
+                                <tr v-for="(marker, index) in project.page.markers" v-bind:key="marker.id">
+                                    <td>
+                                        <img :src="marker.src"
+                                            style="border: 1px solid #000; max-width:64px; max-height:64px;"/>
+                                    </td>
+                                    <td>
+                                        <input class="w3-input w3-border" v-model.number="marker.x" type="number" step=".01" style="min-width: 64;"/>
+                                    </td>
+                                    <td>
+                                        <input class="w3-input w3-border" v-model.number="marker.y" type="number" step=".01" style="min-width: 64;"/>
+                                    </td>
+                                    <td>
+                                        <input class="w3-input w3-border" v-model.number="marker.width" type="number" step=".01" />
+                                    </td>
+                                    <td>
+                                        <input class="w3-input w3-border" v-model.number="marker.height" type="number" step=".01" />
+                                    </td>
+                                    <td>
+                                        <button class="w3-button w3-block w3-green " v-on:click="removeMarker(marker)">
+                                            <span class="material-icons">
+                                                delete_forever
+                                            </span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </table>
+
+
+                        </div>
                     </div>
 
                     <h4>
@@ -352,6 +414,7 @@
                             <span lang="en">Start Code</span>
                             <span lang="ru-RU">Старотовый код</span>
                         </label>
+                        <br>
                         <textarea v-model="project.gcode.startCode">
                         </textarea>
                         <br>
@@ -360,6 +423,7 @@
                             <span lang="en">End Code</span>
                             <span lang="ru-RU">Конечный код</span>
                         </label>
+                        <br>
                         <textarea v-model="project.gcode.endCode">
                         </textarea>
                         <br>
@@ -382,6 +446,7 @@
                             <span lang="en">Contour Start Code</span>
                             <span lang="ru-RU">Старотовый код контура</span>
                         </label>
+                        <br>
                         <textarea v-model="project.gcode.contourStartCode">
                         </textarea>
                         <br>
@@ -389,6 +454,7 @@
                             <span lang="en">Contour End Code</span>
                             <span lang="ru-RU">Конечный код контура</span>
                         </label>
+                        <br>
                         <textarea v-model="project.gcode.contourEndCode">
                         </textarea>
                         <br>
