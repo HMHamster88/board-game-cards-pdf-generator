@@ -1,5 +1,5 @@
 function formatNumber(number) {
-    return new Intl.NumberFormat("en-US", { maximumFractionDigits: 3 }).format(
+    return new Intl.NumberFormat("en-US", { maximumFractionDigits: 3, useGrouping: false }).format(
         number,
     )
 }
@@ -9,7 +9,7 @@ function G0(gCodes, x, y) {
 }
 
 function G1(gCodes, x, y, f) {
-    gCodes.push(`G1 X${formatNumber(x)} Y${formatNumber(y)}` + (f ? `F${formatNumber(f)}` : ''));
+    gCodes.push(`G1 X${formatNumber(x)} Y${formatNumber(y)}` + (f ? ` F${formatNumber(f)}` : ''));
 }
 
 function G3(gCodes, x, y, i, j) {
