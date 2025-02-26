@@ -1,18 +1,34 @@
+function formatNumber(number) {
+    return new Intl.NumberFormat("en-US", { maximumFractionDigits: 3 }).format(
+        number,
+    )
+}
+
+function G0(gCodes, x, y) {
+    gCodes.push(`G0 X${formatNumber(x)} Y${formatNumber(y)}`);
+}
+
+function G1(gCodes, x, y, f) {
+    gCodes.push(`G1 X${formatNumber(x)} Y${formatNumber(y)}` + (f ? `F${formatNumber(f)}` : ''));
+}
+
+function G3(gCodes, x, y, i, j) {
+    gCodes.push(`G3 X${formatNumber(x)} Y${formatNumber(y)} I${formatNumber(i)} J${formatNumber(j)}`);
+}
+
 function addRectGCode(rectX, rectY, rectWidth, rectHeight, rectRoundingRadius, dragKnifeOffset, feedRate, contourStartCode, contourEndCode, passCount, gCodes) {
-    gCodes.push(`G0 X${rectX + rectWidth / 2 - dragKnifeOffset * 2} Y${rectY}`);
+    G0(gCodes, rectX + rectWidth / 2 - dragKnifeOffset * 2, rectY);
     gCodes.push(contourStartCode);
     for (var pass = 0; pass < passCount; pass++) {
-        
-        gCodes.push(`G1 X${rectX + rectWidth - rectRoundingRadius + dragKnifeOffset} Y${rectY} F${feedRate}`);
-        gCodes.push(`G3 X${rectX + rectWidth} Y${rectY + rectRoundingRadius + dragKnifeOffset} I${-dragKnifeOffset} J${rectRoundingRadius}`);
-        gCodes.push(`G1 X${rectX + rectWidth} Y${rectY + rectHeight - rectRoundingRadius + dragKnifeOffset}`);
-        gCodes.push(`G3 X${rectX + rectWidth - rectRoundingRadius - dragKnifeOffset} Y${rectY + rectHeight} I${-rectRoundingRadius} J${-dragKnifeOffset}`);
-        gCodes.push(`G1 X${rectX + rectRoundingRadius - dragKnifeOffset} Y${rectY + rectHeight}`);
-        gCodes.push(`G3 X${rectX} Y${rectY + rectHeight  - rectRoundingRadius - dragKnifeOffset} I${dragKnifeOffset} J${-rectRoundingRadius}`);
-        gCodes.push(`G1 X${rectX} Y${rectY + rectRoundingRadius - dragKnifeOffset}`);
-        gCodes.push(`G3 X${rectX + rectRoundingRadius + dragKnifeOffset} Y${rectY} I${rectRoundingRadius} J${dragKnifeOffset}`);
-        gCodes.push(`G1 X${rectX + rectWidth / 2} Y${rectY}`);
-        
+        G1(gCodes, rectX + rectWidth - rectRoundingRadius + dragKnifeOffset, rectY, feedRate);
+        G3(gCodes, rectX + rectWidth, rectY + rectRoundingRadius + dragKnifeOffset, -dragKnifeOffset, rectRoundingRadius);
+        G1(gCodes, rectX + rectWidth, rectY + rectHeight - rectRoundingRadius + dragKnifeOffset);
+        G3(gCodes, rectX + rectWidth - rectRoundingRadius - dragKnifeOffset, rectY + rectHeight, -rectRoundingRadius, -dragKnifeOffset);
+        G1(gCodes, rectX + rectRoundingRadius - dragKnifeOffset, rectY + rectHeight);
+        G3(gCodes, rectX, rectY + rectHeight - rectRoundingRadius - dragKnifeOffset, dragKnifeOffset, -rectRoundingRadius);
+        G1(gCodes, rectX, rectY + rectRoundingRadius - dragKnifeOffset);
+        G3(gCodes, rectX + rectRoundingRadius + dragKnifeOffset, rectY, rectRoundingRadius, dragKnifeOffset);
+        G1(gCodes, rectX + rectWidth / 2, rectY);
     }
     gCodes.push(contourEndCode);
 }
