@@ -186,6 +186,9 @@ var app = new Vue({
         this.$nextTick(function () {
             this.openDb();
             console.log(this.project);
+            window.addEventListener('beforeunload', () => {
+                this.saveProject();
+            });
         })
     },
     methods: {
@@ -590,7 +593,6 @@ var app = new Vue({
                 }
             }
             document.querySelector("iframe").src = window.URL.createObjectURL(doc.output('blob'));
-            //download(doc.output('blob'), 'cards.pdf', 'application/pdf');
             console.log('generation finished');
         }
     },
@@ -598,7 +600,6 @@ var app = new Vue({
         project: {
             deep: true,
             handler: function (val, oldVal) {
-                this.saveProject();
                 if (this.project.autoGeneration) {
                     this.generatePdf();
                 }
